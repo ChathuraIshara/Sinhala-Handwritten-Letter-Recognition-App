@@ -16,6 +16,7 @@ A modern React + TypeScript frontend application for recognizing Sinhala handwri
 
 - React 18
 - TypeScript
+- Tailwind CSS (styling)
 - Vite (build tool)
 - Canvas API for drawing
 - Fetch API for HTTP requests
@@ -64,19 +65,39 @@ npm run preview
 
 ## API Endpoint
 
-The app expects a backend API at:
+The app expects a Flask backend API at:
 - **URL**: `http://127.0.0.1:5000/predict`
 - **Method**: POST
 - **Content-Type**: multipart/form-data
-- **Field name**: `image`
+- **Field name**: `file` (Flask expects 'file' field)
 - **Response format**: JSON with `prediction` field (string) or `error` field (string)
 
-Example response:
+Example success response:
 ```json
 {
   "prediction": "අ"
 }
 ```
+
+Example error response:
+```json
+{
+  "error": "Error message here"
+}
+```
+
+### CORS Configuration
+
+If you encounter CORS errors, add the following to your Flask app (`app.py`):
+
+```python
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
+```
+
+Or install flask-cors: `pip install flask-cors`
 
 ## Project Structure
 
@@ -84,10 +105,12 @@ Example response:
 .
 ├── src/
 │   ├── App.tsx          # Main application component
-│   ├── App.css          # Styles
+│   ├── App.css          # Tailwind CSS directives
 │   └── index.tsx        # Entry point
 ├── index.html           # HTML template
 ├── package.json         # Dependencies
+├── tailwind.config.js   # Tailwind configuration
+├── postcss.config.js    # PostCSS configuration
 ├── tsconfig.json        # TypeScript config
 └── vite.config.ts       # Vite config
 ```

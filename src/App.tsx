@@ -5,6 +5,7 @@ interface PredictionResponse {
   prediction?: string;
   confidence?: number;
   error?: string;
+  predicted_letter?: string;    
 }
 
 function App() {
@@ -162,28 +163,31 @@ function App() {
       // Convert canvas to blob
       const blob = await canvasToBlob();
 
-      // Create form data
+      // Create form data - Flask backend expects field name 'file'
       const formData = new FormData();
-      formData.append('image', blob, 'drawing.png');
+      formData.append('file', blob, 'drawing.png');
 
-      // Send POST request
+      // Send POST request to Flask backend
       const response = await fetch('http://127.0.0.1:5000/predict', {
         method: 'POST',
-        body: formData,
+        body: formData, 
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const data: PredictionResponse = await response.json();
+      console.log('Prediction response:', data);
+
+      // Handle Flask error responses (status 400 or 500)
+      if (!response.ok || data.error) {
+        const errorMsg = data.error || `HTTP error! status: ${response.status}`;
+        setError(errorMsg);
+        return;
       }
 
-      const data: PredictionResponse = await response.json();
-
-      if (data.error) {
-        setError(data.error);
-      } else if (data.prediction) {
-        setPrediction(data.prediction);
+      // Handle successful prediction
+      if (data.predicted_letter) {
+        setPrediction(data.predicted_letter);
       } else {
-        setError('Invalid response from server');
+        setError('Invalid response from server: No prediction field found');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect to the API';
@@ -194,13 +198,13 @@ function App() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-3 overflow-hidden">
+    <div className="flex items-center justify-center h-screen p-3 overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col items-center gap-3 p-4 md:p-5 border border-white/80 backdrop-blur-sm h-full max-h-[calc(100vh-1.5rem)] flex-shrink-0">
-        <h1 className="text-xl md:text-2xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent text-center flex-shrink-0">
+        <h1 className="flex-shrink-0 text-xl font-extrabold text-center text-transparent md:text-2xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">
           Sinhala Letter Recognition
         </h1>
 
-        <div className="w-full flex justify-center items-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-inner border-2 border-indigo-100 flex-shrink-0">
+        <div className="flex items-center justify-center flex-shrink-0 w-full p-3 border-2 border-indigo-100 shadow-inner bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
           <canvas
             ref={canvasRef}
             className="w-full max-w-[240px] md:max-w-[280px] h-[240px] md:h-[280px] rounded-lg cursor-crosshair touch-none shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
@@ -214,8 +218,8 @@ function App() {
           />
         </div>
 
-        <div className="w-full flex flex-col gap-2 px-2 flex-shrink-0">
-          <div className="flex items-center gap-2 md:gap-3 justify-center flex-wrap p-2 md:p-3 bg-gray-50 rounded-xl border border-indigo-100">
+        <div className="flex flex-col flex-shrink-0 w-full gap-2 px-2">
+          <div className="flex flex-wrap items-center justify-center gap-2 p-2 border border-indigo-100 md:gap-3 md:p-3 bg-gray-50 rounded-xl">
             <label htmlFor="stroke-width" className="text-xs md:text-sm font-semibold text-gray-700 min-w-[90px] md:min-w-[110px]">
               Stroke Width:
             </label>
@@ -233,7 +237,7 @@ function App() {
             </span>
           </div>
 
-          <div className="flex gap-2 md:gap-3 justify-center flex-wrap">
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
             <button
               onClick={clearCanvas}
               className="px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold rounded-xl cursor-pointer transition-all duration-300 min-w-[120px] md:min-w-[140px] shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border border-black/5 hover:-translate-y-0.5 active:translate-y-0"
@@ -252,21 +256,21 @@ function App() {
         </div>
 
         {isLoading && (
-          <div className="flex flex-col items-center gap-2 py-2 flex-shrink-0">
-            <div className="w-8 h-8 md:w-10 md:h-10 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="text-gray-600 text-xs md:text-sm">Analyzing your drawing...</p>
+          <div className="flex flex-col items-center flex-shrink-0 gap-2 py-2">
+            <div className="w-8 h-8 border-4 border-gray-200 rounded-full md:w-10 md:h-10 border-t-indigo-600 animate-spin"></div>
+            <p className="text-xs text-gray-600 md:text-sm">Analyzing your drawing...</p>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 md:p-4 w-full text-center flex-shrink-0">
-            <p className="text-red-700 text-xs md:text-sm leading-relaxed">{error}</p>
+          <div className="flex-shrink-0 w-full p-3 text-center border border-red-200 rounded-lg bg-red-50 md:p-4">
+            <p className="text-xs leading-relaxed text-red-700 md:text-sm">{error}</p>
           </div>
         )}
 
         {prediction && !isLoading && (
-          <div className="w-full text-center p-4 md:p-6 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 rounded-xl shadow-lg border-2 border-indigo-200 animate-fadeIn flex-shrink-0">
-            <p className="text-sm md:text-base font-semibold text-gray-700 mb-2 md:mb-3 uppercase tracking-wide opacity-80">
+          <div className="flex-shrink-0 w-full p-4 text-center border-2 border-indigo-200 shadow-lg md:p-6 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 rounded-xl animate-fadeIn">
+            <p className="mb-2 text-sm font-semibold tracking-wide text-gray-700 uppercase md:text-base md:mb-3 opacity-80">
               Predicted Letter:
             </p>
             <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-800 min-h-[60px] md:min-h-[80px] flex items-center justify-center font-sinhala drop-shadow-lg animate-scaleIn">
