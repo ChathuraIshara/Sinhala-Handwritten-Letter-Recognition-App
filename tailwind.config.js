@@ -8,6 +8,7 @@ export default {
     extend: {
       fontFamily: {
         sinhala: ['Noto Sans Sinhala', 'Arial Unicode MS', 'sans-serif'],
+        outfit: ['Outfit', 'sans-serif'],
       },
     },
   },
